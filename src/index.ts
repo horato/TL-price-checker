@@ -1,4 +1,4 @@
-import { AuctionHouseItemDTO, State, TraitDTO, TraitItem } from "./definitions";
+import { AuctionHouseItemDTO, GetAuctionHouseResponse, State, TraitDTO, TraitItem } from "./definitions";
 
 const CATEGORY_COMBOBOX_NAME = "category"
 const GRADE_COMBOBOX_NAME = "grade"
@@ -47,11 +47,16 @@ async function refresh()
         .filter(x => x.category === state.category && (state.grade == 0 || x.grade === state.grade))
         .sort((x, y) =>
         {
-            var xPrice = x.minTrait?.price ?? 0;
-            var yPrice = y.minTrait?.price ?? 0;
-            return yPrice - xPrice;
+            if (x.minTrait === null && y.minTrait === null)
+                return y.minPrice - x.minPrice
+            if (x.minTrait === null)
+                return y.minTrait.price - x.minPrice;
+            if (y.minTrait === null)
+                return y.minPrice - x.minTrait.id;
+
+            return y.minTrait.price - x.minTrait.price;
         })
-        .map(x => { return `${x.minTrait?.price ?? "0"} lucent = ${x.name} (${x.traitIds[x?.minTrait?.id]})` })
+        .map(x => { return `${x.minTrait == null ? x.minPrice : x.minTrait.price} lucent = ${x.name} (${x.traitIds[x?.minTrait?.id]})` })
 
     document.getElementById("output")!.textContent = result.join("\n");
 }
@@ -59,7 +64,7 @@ async function refresh()
 async function getAuctionHouseData(): Promise<Array<AuctionHouseItemDTO>>
 {
     let rs = await fetch("https://corsproxy.io/?https://questlog.gg/throne-and-liberty/api/trpc/actionHouse.getAuctionHouse?input={\"language\":\"en\",\"regionId\":\"eu-e\"}");
-    let input = await rs.json();
+    let input = await rs.json() as GetAuctionHouseResponse;
     let data: Array<AuctionHouseItemDTO> = input.result.data.map(x =>
     {
         let trait: TraitItem | null;
@@ -76,6 +81,7 @@ async function getAuctionHouseData(): Promise<Array<AuctionHouseItemDTO>>
                 category: x.mainCategory,
                 grade: x.grade,
                 name: x.name,
+                minPrice: x.minPrice,
                 traitIds: x.traitIds ?? new Map<string, string>(),
                 minTrait: traitData
             })

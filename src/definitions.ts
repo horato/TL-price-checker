@@ -37,6 +37,7 @@ export interface AuctionHouseItemDTO
     category: string
     grade: number
     name: string
+    minPrice: number
     traitIds: Map<string, string>
     minTrait: TraitDTO | null
 }

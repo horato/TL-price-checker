@@ -46,12 +46,15 @@ function refresh() {
         let result = data
             .filter(x => x.category === state.category && (state.grade == 0 || x.grade === state.grade))
             .sort((x, y) => {
-            var _a, _b, _c, _d;
-            var xPrice = (_b = (_a = x.minTrait) === null || _a === void 0 ? void 0 : _a.price) !== null && _b !== void 0 ? _b : 0;
-            var yPrice = (_d = (_c = y.minTrait) === null || _c === void 0 ? void 0 : _c.price) !== null && _d !== void 0 ? _d : 0;
-            return yPrice - xPrice;
+            if (x.minTrait === null && y.minTrait === null)
+                return y.minPrice - x.minPrice;
+            if (x.minTrait === null)
+                return y.minTrait.price - x.minPrice;
+            if (y.minTrait === null)
+                return y.minPrice - x.minTrait.id;
+            return y.minTrait.price - x.minTrait.price;
         })
-            .map(x => { var _a, _b, _c; return `${(_b = (_a = x.minTrait) === null || _a === void 0 ? void 0 : _a.price) !== null && _b !== void 0 ? _b : "0"} lucent = ${x.name} (${x.traitIds[(_c = x === null || x === void 0 ? void 0 : x.minTrait) === null || _c === void 0 ? void 0 : _c.id]})`; });
+            .map(x => { var _a; return `${x.minTrait == null ? x.minPrice : x.minTrait.price} lucent = ${x.name} (${x.traitIds[(_a = x === null || x === void 0 ? void 0 : x.minTrait) === null || _a === void 0 ? void 0 : _a.id]})`; });
         document.getElementById("output").textContent = result.join("\n");
     });
 }
@@ -73,6 +76,7 @@ function getAuctionHouseData() {
                 category: x.mainCategory,
                 grade: x.grade,
                 name: x.name,
+                minPrice: x.minPrice,
                 traitIds: (_a = x.traitIds) !== null && _a !== void 0 ? _a : new Map(),
                 minTrait: traitData
             });
