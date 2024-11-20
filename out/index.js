@@ -13,30 +13,15 @@ const CATEGORY_COMBOBOX_NAME = "category";
 const GRADE_COMBOBOX_NAME = "grade";
 const DEFAULT_CATEGORY = "traitextract";
 const DEFAULT_GRADE = 3;
-const state = { grade: DEFAULT_GRADE, category: DEFAULT_CATEGORY, items: [] };
+const state = { grade: DEFAULT_GRADE, category: DEFAULT_CATEGORY, items: [], statData: {} };
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         state.items = yield getAuctionHouseData();
+        state.statData = yield getStatFormatData();
         yield AttachChangedHandlers();
         yield refresh();
     });
 }
-//#region ChangedHandler
-function AttachChangedHandlers() {
-    return __awaiter(this, void 0, void 0, function* () {
-        let categoryComboBox = yield getCombobox(CATEGORY_COMBOBOX_NAME);
-        categoryComboBox.onchange = () => {
-            state.category = categoryComboBox.value;
-            refresh();
-        };
-        let gradeComboBox = yield getCombobox(GRADE_COMBOBOX_NAME);
-        gradeComboBox.onchange = () => {
-            state.grade = parseInt(gradeComboBox.value);
-            refresh();
-        };
-    });
-}
-//#endregion
 function refresh() {
     return __awaiter(this, void 0, void 0, function* () {
         let data = state.items;
@@ -54,10 +39,18 @@ function refresh() {
                 return y.minPrice - x.minTrait.id;
             return y.minTrait.price - x.minTrait.price;
         })
-            .map(x => { var _a; return `${x.minTrait == null ? x.minPrice : x.minTrait.price} lucent = ${x.name} (${x.traitIds[(_a = x === null || x === void 0 ? void 0 : x.minTrait) === null || _a === void 0 ? void 0 : _a.id]})`; });
+            .map(x => {
+            var _a, _b;
+            let traitId = x.minTrait == null ? null : x.traitIds[x.minTrait.id];
+            let traitName = traitId == null ? "" : (_b = (_a = state.statData.get(traitId)) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : "";
+            let price = x.minTrait == null ? x.minPrice : x.minTrait.price;
+            let count = x.minTrait == null ? x.count : x.minTrait.count;
+            return `${price} lucent = ${x.name} (${traitName}, ${count}x)`;
+        });
         document.getElementById("output").textContent = result.join("\n");
     });
 }
+//#region Rest
 function getAuctionHouseData() {
     return __awaiter(this, void 0, void 0, function* () {
         let rs = yield fetch("https://corsproxy.io/?https://questlog.gg/throne-and-liberty/api/trpc/actionHouse.getAuctionHouse?input={\"language\":\"en\",\"regionId\":\"eu-e\"}");
@@ -70,13 +63,14 @@ function getAuctionHouseData() {
                 trait = null;
             else
                 trait = traitItems.reduce((x, y) => y.minPrice > x.minPrice ? y : x);
-            var traitData = trait === null ? null : ({ price: trait.minPrice, id: trait.traitId });
+            var traitData = trait === null ? null : ({ price: trait.minPrice, id: trait.traitId, count: trait.inStock });
             return ({
                 id: x.id,
                 category: x.mainCategory,
                 grade: x.grade,
                 name: x.name,
                 minPrice: x.minPrice,
+                count: x.inStock,
                 traitIds: (_a = x.traitIds) !== null && _a !== void 0 ? _a : new Map(),
                 minTrait: traitData
             });
@@ -84,6 +78,18 @@ function getAuctionHouseData() {
         return data;
     });
 }
+function getStatFormatData() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let rs = yield fetch("https://corsproxy.io/?https://questlog.gg/throne-and-liberty/api/trpc/statFormat.getStatFormat?input={\"language\":\"en\"}");
+        let input = yield rs.json();
+        let map = new Map();
+        for (let key in input.result.data) {
+            map.set(key, ({ id: key, name: input.result.data[key].name }));
+        }
+        return map;
+    });
+}
+//#endregion
 //#region ComboBoxes
 function getCombobox(id) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -114,6 +120,22 @@ function refreshGradeCombobox() {
             }
         }
         selector.selectedIndex = [...selector.options].findIndex(x => x.value === state.grade.toString());
+    });
+}
+//#endregion
+//#region ChangedHandler
+function AttachChangedHandlers() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let categoryComboBox = yield getCombobox(CATEGORY_COMBOBOX_NAME);
+        categoryComboBox.onchange = () => {
+            state.category = categoryComboBox.value;
+            refresh();
+        };
+        let gradeComboBox = yield getCombobox(GRADE_COMBOBOX_NAME);
+        gradeComboBox.onchange = () => {
+            state.grade = parseInt(gradeComboBox.value);
+            refresh();
+        };
     });
 }
 //#endregion

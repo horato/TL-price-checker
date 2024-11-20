@@ -1,39 +1,20 @@
-import { AuctionHouseItemDTO, GetAuctionHouseResponse, State, TraitDTO, TraitItem } from "./definitions";
+import { AuctionHouseItemDTO, GetAuctionHouseResponse, GetStatFormatResponse, StatDTO, State, TraitDTO, TraitItem } from "./definitions";
 
 const CATEGORY_COMBOBOX_NAME = "category"
 const GRADE_COMBOBOX_NAME = "grade"
 const DEFAULT_CATEGORY = "traitextract"
 const DEFAULT_GRADE = 3
 
-const state = { grade: DEFAULT_GRADE, category: DEFAULT_CATEGORY, items: [] } as State
+const state = { grade: DEFAULT_GRADE, category: DEFAULT_CATEGORY, items: [], statData: {} } as State
 
 async function main()
 {
     state.items = await getAuctionHouseData();
+    state.statData = await getStatFormatData();
+
     await AttachChangedHandlers()
     await refresh()
 }
-
-//#region ChangedHandler
-
-async function AttachChangedHandlers()
-{
-    let categoryComboBox = await getCombobox(CATEGORY_COMBOBOX_NAME);
-    categoryComboBox.onchange = () =>
-    {
-        state.category = categoryComboBox.value
-        refresh()
-    }
-
-    let gradeComboBox = await getCombobox(GRADE_COMBOBOX_NAME);
-    gradeComboBox.onchange = () =>
-    {
-        state.grade = parseInt(gradeComboBox.value)
-        refresh()
-    }
-}
-
-//#endregion
 
 async function refresh()
 {
@@ -56,10 +37,21 @@ async function refresh()
 
             return y.minTrait.price - x.minTrait.price;
         })
-        .map(x => { return `${x.minTrait == null ? x.minPrice : x.minTrait.price} lucent = ${x.name} (${x.traitIds[x?.minTrait?.id]})` })
+        .map(x =>
+        {
+            let traitId = x.minTrait == null ? null : x.traitIds[x.minTrait.id];
+            let traitName = traitId == null ? "" : state.statData.get(traitId)?.name ?? "";
+            let price = x.minTrait == null ? x.minPrice : x.minTrait.price
+            let count = x.minTrait == null ? x.count : x.minTrait.count;
+
+
+            return `${price} lucent = ${x.name} (${traitName}, ${count}x)`
+        })
 
     document.getElementById("output")!.textContent = result.join("\n");
 }
+
+//#region Rest
 
 async function getAuctionHouseData(): Promise<Array<AuctionHouseItemDTO>>
 {
@@ -74,7 +66,7 @@ async function getAuctionHouseData(): Promise<Array<AuctionHouseItemDTO>>
         else
             trait = traitItems.reduce((x: TraitItem, y: TraitItem) => y.minPrice > x.minPrice ? y : x);
 
-        var traitData: TraitDTO | null = trait === null ? null : ({ price: trait.minPrice, id: trait.traitId });
+        var traitData: TraitDTO | null = trait === null ? null : ({ price: trait.minPrice, id: trait.traitId, count: trait.inStock });
         return (
             {
                 id: x.id,
@@ -82,6 +74,7 @@ async function getAuctionHouseData(): Promise<Array<AuctionHouseItemDTO>>
                 grade: x.grade,
                 name: x.name,
                 minPrice: x.minPrice,
+                count: x.inStock,
                 traitIds: x.traitIds ?? new Map<string, string>(),
                 minTrait: traitData
             })
@@ -89,6 +82,22 @@ async function getAuctionHouseData(): Promise<Array<AuctionHouseItemDTO>>
 
     return data;
 }
+
+async function getStatFormatData(): Promise<Map<string, StatDTO>>
+{
+    let rs = await fetch("https://corsproxy.io/?https://questlog.gg/throne-and-liberty/api/trpc/statFormat.getStatFormat?input={\"language\":\"en\"}");
+    let input = await rs.json() as GetStatFormatResponse;
+
+    let map = new Map();
+    for (let key in input.result.data)
+    {
+        map.set(key, ({ id: key, name: input.result.data[key].name }))
+    }
+
+    return map;
+}
+
+//#endregion
 
 //#region ComboBoxes
 
@@ -127,6 +136,27 @@ async function refreshGradeCombobox(): Promise<void>
     }
 
     selector.selectedIndex = [...selector.options].findIndex(x => x.value === state.grade.toString())
+}
+
+//#endregion
+
+//#region ChangedHandler
+
+async function AttachChangedHandlers()
+{
+    let categoryComboBox = await getCombobox(CATEGORY_COMBOBOX_NAME);
+    categoryComboBox.onchange = () =>
+    {
+        state.category = categoryComboBox.value
+        refresh()
+    }
+
+    let gradeComboBox = await getCombobox(GRADE_COMBOBOX_NAME);
+    gradeComboBox.onchange = () =>
+    {
+        state.grade = parseInt(gradeComboBox.value)
+        refresh()
+    }
 }
 
 //#endregion
