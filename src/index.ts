@@ -49,10 +49,10 @@ function refresh()
             let summary = document.createElement("summary");
             summary.innerText = `${price} lucent = ${x.name} (${description})`
 
-            let traits = x.traits.map(x => `${state.statData.get(x.id).name} - ${x.price} lucent (${x.count}x)`)
             let table = document.createElement("table");
             table.style.margin = "0 0 0 1%"
 
+            let traits = x.traits.sort((a, b) => b.price - a.price).map(x => `${state.statData.get(x.id).name} - ${x.price} lucent (${x.count}x)`)
             traits.forEach(x =>
             {
                 let cell = document.createElement("td");
