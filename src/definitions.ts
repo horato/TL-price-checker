@@ -86,7 +86,6 @@ export interface State
     statData: Map<string, StatDTO>
 }
 
-
 export interface StatDTO
 {
     id: string

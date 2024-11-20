@@ -13,6 +13,7 @@ const CATEGORY_COMBOBOX_NAME = "category";
 const GRADE_COMBOBOX_NAME = "grade";
 const DEFAULT_CATEGORY = "traitextract";
 const DEFAULT_GRADE = 3;
+const ITEM_COUNT_LIMIT = 2;
 const state = { grade: DEFAULT_GRADE, category: DEFAULT_CATEGORY, items: [], statData: {} };
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -29,6 +30,7 @@ function refresh() {
     refreshGradeCombobox();
     let result = data
         .filter(x => x.category === state.category && (state.grade == 0 || x.grade === state.grade))
+        .filter(x => getCount(x) >= ITEM_COUNT_LIMIT)
         .sort((x, y) => {
         if (x.mostExpensiveTrait === null && y.mostExpensiveTrait === null)
             return y.minPrice - x.minPrice;
@@ -43,11 +45,29 @@ function refresh() {
         let traitId = x.mostExpensiveTrait == null ? null : x.mostExpensiveTrait.id;
         let traitName = traitId == null ? "" : (_b = (_a = state.statData.get(traitId)) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : "";
         let price = x.mostExpensiveTrait == null ? x.minPrice : x.mostExpensiveTrait.price;
-        let count = x.mostExpensiveTrait == null ? x.count : x.mostExpensiveTrait.count;
-        let description = [traitName, `${count}x`].filter(Boolean).join(", ");
-        return `${price} lucent = ${x.name} (${description})`;
+        let description = [traitName, `${getCount(x)}x`].filter(Boolean).join(", ");
+        let summary = document.createElement("summary");
+        summary.innerText = `${price} lucent = ${x.name} (${description})`;
+        let traits = x.traits.map(x => `${state.statData.get(x.id).name} - ${x.price} lucent (${x.count}x)`);
+        let table = document.createElement("table");
+        table.style.margin = "0 0 0 1%";
+        traits.forEach(x => {
+            let cell = document.createElement("td");
+            cell.textContent = x;
+            let row = document.createElement("tr");
+            row.appendChild(cell);
+            table.appendChild(row);
+        });
+        let details = document.createElement("details");
+        details.appendChild(summary);
+        details.appendChild(table);
+        return details;
     });
-    document.getElementById("output").textContent = result.join("\n");
+    let output = document.getElementById("output");
+    output.replaceChildren(...result);
+}
+function getCount(item) {
+    return item.mostExpensiveTrait == null ? item.count : item.mostExpensiveTrait.count;
 }
 //#region Rest
 function getAuctionHouseData() {
@@ -56,7 +76,7 @@ function getAuctionHouseData() {
         let input = yield rs.json();
         let data = input.result.data.map(x => {
             let trait;
-            let traitItems = x.traitItems.filter(x => x.inStock > 1);
+            let traitItems = x.traitItems.filter(x => x.inStock >= ITEM_COUNT_LIMIT);
             if (traitItems.length === 0)
                 trait = null;
             else
