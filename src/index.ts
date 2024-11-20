@@ -12,40 +12,40 @@ async function main()
     state.items = await getAuctionHouseData();
     state.statData = await getStatFormatData();
 
-    await AttachChangedHandlers()
-    await refresh()
+    attachChangedHandlers()
+    refresh()
 }
 
-async function refresh()
+function refresh()
 {
     let data = state.items
 
     let categories = [...new Set(data.map(x => x.category)).values()];
-    await refreshCategoryCombobox(categories);
-    await refreshGradeCombobox();
+    refreshCategoryCombobox(categories);
+    refreshGradeCombobox();
 
     let result = data
         .filter(x => x.category === state.category && (state.grade == 0 || x.grade === state.grade))
         .sort((x, y) =>
         {
-            if (x.minTrait === null && y.minTrait === null)
+            if (x.mostExpensiveTrait === null && y.mostExpensiveTrait === null)
                 return y.minPrice - x.minPrice
-            if (x.minTrait === null)
-                return y.minTrait.price - x.minPrice;
-            if (y.minTrait === null)
-                return y.minPrice - x.minTrait.id;
+            if (x.mostExpensiveTrait === null)
+                return y.mostExpensiveTrait.price - x.minPrice;
+            if (y.mostExpensiveTrait === null)
+                return y.minPrice - x.mostExpensiveTrait.price;
 
-            return y.minTrait.price - x.minTrait.price;
+            return y.mostExpensiveTrait.price - x.mostExpensiveTrait.price;
         })
         .map(x =>
         {
-            let traitId = x.minTrait == null ? null : x.traitIds[x.minTrait.id];
+            let traitId = x.mostExpensiveTrait == null ? null : x.mostExpensiveTrait.id;
             let traitName = traitId == null ? "" : state.statData.get(traitId)?.name ?? "";
-            let price = x.minTrait == null ? x.minPrice : x.minTrait.price
-            let count = x.minTrait == null ? x.count : x.minTrait.count;
+            let price = x.mostExpensiveTrait == null ? x.minPrice : x.mostExpensiveTrait.price
+            let count = x.mostExpensiveTrait == null ? x.count : x.mostExpensiveTrait.count;
 
-
-            return `${price} lucent = ${x.name} (${traitName}, ${count}x)`
+            let description = [traitName, `${count}x`].filter(Boolean).join(", ")
+            return `${price} lucent = ${x.name} (${description})`
         })
 
     document.getElementById("output")!.textContent = result.join("\n");
@@ -66,7 +66,6 @@ async function getAuctionHouseData(): Promise<Array<AuctionHouseItemDTO>>
         else
             trait = traitItems.reduce((x: TraitItem, y: TraitItem) => y.minPrice > x.minPrice ? y : x);
 
-        var traitData: TraitDTO | null = trait === null ? null : ({ price: trait.minPrice, id: trait.traitId, count: trait.inStock });
         return (
             {
                 id: x.id,
@@ -75,12 +74,22 @@ async function getAuctionHouseData(): Promise<Array<AuctionHouseItemDTO>>
                 name: x.name,
                 minPrice: x.minPrice,
                 count: x.inStock,
-                traitIds: x.traitIds ?? new Map<string, string>(),
-                minTrait: traitData
+                mostExpensiveTrait: createTraitDTO(trait, x.traitIds),
+                traits: x.traitItems.map(y => createTraitDTO(y, x.traitIds))
             })
     })
 
     return data;
+}
+
+function createTraitDTO(trait: TraitItem, traitIds: { [key: number]: string; }): TraitDTO | null
+{
+    return trait == null ? null :
+        ({
+            price: trait.minPrice,
+            id: traitIds[trait.traitId],
+            count: trait.inStock
+        });
 }
 
 async function getStatFormatData(): Promise<Map<string, StatDTO>>
@@ -101,14 +110,14 @@ async function getStatFormatData(): Promise<Map<string, StatDTO>>
 
 //#region ComboBoxes
 
-async function getCombobox(id: string): Promise<HTMLSelectElement>
+function getCombobox(id: string): HTMLSelectElement
 {
     return document.getElementById(id) as HTMLSelectElement;
 }
 
-async function refreshCategoryCombobox(categories: Array<string>): Promise<void>
+function refreshCategoryCombobox(categories: Array<string>): void
 {
-    let selector = await getCombobox(CATEGORY_COMBOBOX_NAME);
+    let selector = getCombobox(CATEGORY_COMBOBOX_NAME);
     if (selector.options.length === 0)
     {
         for (let idx in categories.sort())
@@ -122,9 +131,9 @@ async function refreshCategoryCombobox(categories: Array<string>): Promise<void>
     selector.selectedIndex = [...selector.options].findIndex(x => x.value === state.category)
 }
 
-async function refreshGradeCombobox(): Promise<void>
+function refreshGradeCombobox(): void
 {
-    let selector = await getCombobox(GRADE_COMBOBOX_NAME);
+    let selector = getCombobox(GRADE_COMBOBOX_NAME);
     if (selector.options.length === 0)
     {
         const grades = ["<All>", "Common", "Uncommon", "Rare", "Epic"]
@@ -142,16 +151,16 @@ async function refreshGradeCombobox(): Promise<void>
 
 //#region ChangedHandler
 
-async function AttachChangedHandlers()
+function attachChangedHandlers()
 {
-    let categoryComboBox = await getCombobox(CATEGORY_COMBOBOX_NAME);
+    let categoryComboBox = getCombobox(CATEGORY_COMBOBOX_NAME);
     categoryComboBox.onchange = () =>
     {
         state.category = categoryComboBox.value
         refresh()
     }
 
-    let gradeComboBox = await getCombobox(GRADE_COMBOBOX_NAME);
+    let gradeComboBox = getCombobox(GRADE_COMBOBOX_NAME);
     gradeComboBox.onchange = () =>
     {
         state.grade = parseInt(gradeComboBox.value)

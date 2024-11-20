@@ -19,7 +19,7 @@ export interface AuctionHouseItem
     grade: number
     mainCategory: string
     subCategory: string
-    traitIds?: Map<string, string>
+    traitIds?: { [key: number]: string };
     minPrice: number
     inStock: number
     traitItems: TraitItem[]
@@ -67,13 +67,13 @@ export interface AuctionHouseItemDTO
     name: string
     minPrice: number
     count: number
-    traitIds: Map<string, string>
-    minTrait: TraitDTO | null
+    mostExpensiveTrait: TraitDTO | null
+    traits: Array<TraitDTO>
 }
 
 export interface TraitDTO
 {
-    id: number
+    id: string
     price: number
     count: number
 }
