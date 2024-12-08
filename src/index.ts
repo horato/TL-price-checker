@@ -83,7 +83,7 @@ function getCount(item: AuctionHouseItemDTO)
 
 async function getAuctionHouseData(): Promise<Array<AuctionHouseItemDTO>>
 {
-    let rs = await fetch("https://corsproxy.io/?https://questlog.gg/throne-and-liberty/api/trpc/actionHouse.getAuctionHouse?input={\"language\":\"en\",\"regionId\":\"eu-e\"}");
+    let rs = await fetch("https://corsproxy.io/?https://questlog.gg/throne-and-liberty/api/trpc/actionHouse.getAuctionHouse%3Finput={\"language\":\"en\",\"regionId\":\"eu-e\"}");
     let input = await rs.json() as GetAuctionHouseResponse;
     let data: Array<AuctionHouseItemDTO> = input.result.data.map(x =>
     {
@@ -122,7 +122,7 @@ function createTraitDTO(trait: TraitItem, traitIds: { [key: number]: string; }):
 
 async function getStatFormatData(): Promise<Map<string, StatDTO>>
 {
-    let rs = await fetch("https://corsproxy.io/?https://questlog.gg/throne-and-liberty/api/trpc/statFormat.getStatFormat?input={\"language\":\"en\"}");
+    let rs = await fetch("https://corsproxy.io/?https://questlog.gg/throne-and-liberty/api/trpc/statFormat.getStatFormat%3Finput={\"language\":\"en\"}");
     let input = await rs.json() as GetStatFormatResponse;
 
     let map = new Map();

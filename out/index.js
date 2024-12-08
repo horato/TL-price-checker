@@ -72,7 +72,7 @@ function getCount(item) {
 //#region Rest
 function getAuctionHouseData() {
     return __awaiter(this, void 0, void 0, function* () {
-        let rs = yield fetch("https://corsproxy.io/?https://questlog.gg/throne-and-liberty/api/trpc/actionHouse.getAuctionHouse?input={\"language\":\"en\",\"regionId\":\"eu-e\"}");
+        let rs = yield fetch("https://corsproxy.io/?https://questlog.gg/throne-and-liberty/api/trpc/actionHouse.getAuctionHouse%3Finput={\"language\":\"en\",\"regionId\":\"eu-e\"}");
         let input = yield rs.json();
         let data = input.result.data.map(x => {
             let trait;
@@ -105,7 +105,7 @@ function createTraitDTO(trait, traitIds) {
 }
 function getStatFormatData() {
     return __awaiter(this, void 0, void 0, function* () {
-        let rs = yield fetch("https://corsproxy.io/?https://questlog.gg/throne-and-liberty/api/trpc/statFormat.getStatFormat?input={\"language\":\"en\"}");
+        let rs = yield fetch("https://corsproxy.io/?https://questlog.gg/throne-and-liberty/api/trpc/statFormat.getStatFormat%3Finput={\"language\":\"en\"}");
         let input = yield rs.json();
         let map = new Map();
         for (let key in input.result.data) {
