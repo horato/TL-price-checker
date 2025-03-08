@@ -23,7 +23,9 @@ function refresh()
 
     let categories = [...new Set(data.map(x => x.category)).values()];
     refreshCategoryCombobox(categories);
-    refreshGradeCombobox();
+
+    let grades = [...new Set(data.map(x => x.grade)).values()];
+    refreshGradeCombobox(grades);
 
     let result = data
         .filter(x => x.category === state.category && (state.grade == 0 || x.grade === state.grade))
@@ -159,15 +161,19 @@ function refreshCategoryCombobox(categories: Array<string>): void
     selector.selectedIndex = [...selector.options].findIndex(x => x.value === state.category)
 }
 
-function refreshGradeCombobox(): void
+function refreshGradeCombobox(grades: Array<number>): void
 {
     let selector = getCombobox(GRADE_COMBOBOX_NAME);
     if (selector.options.length === 0)
     {
-        const grades = ["<All>", "Common", "Uncommon", "Rare", "Epic"]
-        for (let idx in grades)
+        const gradeNames = ["<All>", "Common", "Uncommon", "Rare", "Epic", "Epic T2"]
+        selector.add(new Option(gradeNames[0], "0"));
+
+        for (let idx in grades.sort())
         {
-            let option = new Option(grades[idx], idx);
+            let grade = grades[idx];
+            let gradeName = grade < gradeNames.length ? gradeNames[grade] : `Unknown grade: ${grade}`;
+            let option = new Option(gradeName, grade.toString());
             selector.add(option);
         }
     }
