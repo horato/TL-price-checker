@@ -85,7 +85,7 @@ function getCount(item: AuctionHouseItemDTO)
 
 async function getAuctionHouseData(): Promise<Array<AuctionHouseItemDTO>>
 {
-    let rs = await fetch("https://corsproxy.io/?https://questlog.gg/throne-and-liberty/api/trpc/actionHouse.getAuctionHouse%3Finput={\"language\":\"en\",\"regionId\":\"eu-f\"}");
+    let rs = await fetch("https://corsproxy.io/?https://questlog.gg/throne-and-liberty/api/trpc/auctionHouse.getAuctionHouse%3Finput={\"language\":\"en\",\"regionId\":\"eu-f\"}");
     let input = await rs.json() as GetAuctionHouseResponse;
     let data: Array<AuctionHouseItemDTO> = input.result.data.map(x =>
     {
